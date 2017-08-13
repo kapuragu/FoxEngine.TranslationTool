@@ -15,13 +15,33 @@ namespace LangTool
 
         private static void Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length == 0 || args.Length > 3)
             {
                 ShowUsageInfo();
                 return;
             }
 
             string path = args[0];
+            bool outputLangIdHashes = false;
+            string dictionaryPath = DefaultDictionaryPath;
+
+            for (int i = 0; i == args.Length-1; i++) 
+            {
+                string arg = args[i];
+                string argL = args[i].ToLower();
+                if (argL == "-outputhashes" || argL == "-o") 
+                {
+                    outputLangIdHashes = true;
+                } else {
+                    if (argL == "-dictionary" || argL == "-d") 
+                    {
+                        if (i+1 < args.Length) 
+                        {
+                            dictionaryPath = args[i + 1];
+                        }
+                    }
+                }
+            }
 
             if (File.Exists(path) == false)
             {
@@ -48,7 +68,7 @@ namespace LangTool
             else if (String.Equals(extension, ".lng", StringComparison.OrdinalIgnoreCase)
                      || String.Equals(extension, ".lng2", StringComparison.OrdinalIgnoreCase))
             {
-                var dictionary = GetDictionary(DefaultDictionaryPath);
+                var dictionary = GetDictionary(dictionaryPath);
                 using (FileStream inputStream = new FileStream(path, FileMode.Open))
                 using (FileStream outputStream = new FileStream(path + ".xml", FileMode.Create))
                 using (StreamWriter xmlWriter = new StreamWriter(outputStream, Encoding.UTF8))
@@ -56,6 +76,17 @@ namespace LangTool
                     LangFile file = LangFile.ReadLangFile(inputStream, dictionary);
                     XmlSerializer serializer = new XmlSerializer(typeof (LangFile));
                     serializer.Serialize(xmlWriter, file);
+
+                    if (outputLangIdHashes) 
+                    {
+                        using (StreamWriter outputText = new StreamWriter("langIdHashes.txt",true)) //tex appends
+                        {
+                            foreach (LangEntry entry in file.Entries) 
+                            {
+                                outputText.WriteLine(entry.Key);
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -79,7 +110,7 @@ namespace LangTool
             }
             catch (Exception e)
             {
-                Console.WriteLine("Unable to read the dictionary " + e);
+                Console.WriteLine("Unable to read the dictionary " + path + " " + e);
             }
 
             return dictionary;
@@ -100,10 +131,13 @@ namespace LangTool
             Console.WriteLine("LangTool by Atvaark\n" +
                               "  A tool for converting between Fox Engine .lng/.lng2 files and xml.\n" +
                               "Usage:\n" +
-                              "  LangTool file_path.lng|file_path.lng2|file_path.xml\n" +
+                              "  LangTool file_path.lng|file_path.lng2|file_path.xml [-Dictionary] <dictionary path> [-ExportHashes]\n" +
                               "Examples:\n" +
                               "  LangTool gz_cassette.eng.lng     - Converts the lng file to xml\n" +
-                              "  LangTool gz_cassette.eng.lng.xml - Converts the xml file to lng");
+                              "  LangTool gz_cassette.eng.lng.xml - Converts the xml file to lng\n" +
+                              "Options:\n" +
+                              "  -Dictionary <file path> - Specify file path of dictionary to use. Defaults to lang_dictionary.txt\n" +   
+                              "  -OutputHashes - Appends all StrCode32 langId Key hashes to langIdHashes.txt");
         }
     }
 }

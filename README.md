@@ -44,8 +44,15 @@ A Fox Engine localizable string table (.lng) unpacker and repacker.
 
 ### Usage
 ```
-LangTool file_path [output_path]
+LangTool file_path [-exportHashes]
 ```
+
+### Options
+-Dictionary <dictionary file path> 
+Specify file path of dictionary to use. Defaults to lang_dictionary.txt
+
+-OutputHashes | -o
+Appends all StrCode32 langId Key hashes of the lng being processed to langIdHashes.txt
 
 ### Examples
 
