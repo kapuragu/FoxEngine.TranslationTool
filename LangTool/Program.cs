@@ -25,7 +25,7 @@ namespace LangTool
             bool outputLangIdHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
 
-            for (int i = 0; i == args.Length-1; i++) 
+            for (int i = 0; i < args.Length; i++) 
             {
                 string arg = args[i];
                 string argL = args[i].ToLower();

@@ -41,6 +41,8 @@ FfntTool KanjiFont.ffnt.xml
 
 ## LangTool
 A Fox Engine localizable string table (.lng) unpacker and repacker.
+Uses a dictionary to recover langId strings.
+Supplied lang_dictionary.txt is targeted to TPP, also supplied is lang_dictionary_mgo.txt
 
 ### Usage
 ```
