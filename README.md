@@ -42,7 +42,8 @@ FfntTool KanjiFont.ffnt.xml
 ## LangTool
 A Fox Engine localizable string table (.lng) unpacker and repacker.
 Uses a dictionary to recover langId strings.
-Supplied lang_dictionary.txt is targeted to TPP, also supplied is lang_dictionary_mgo.txt
+Supplied lang_dictionary.txt is combined TPP/MGO
+Check https://github.com/TinManTex/mgsv-lookup-strings for updated dictionaries.
 
 ### Usage
 ```
@@ -70,6 +71,8 @@ LangTool gz_menu.lng#eng.xml
 
 ## SubpTool
 A Fox Engine subtitle pack unpacker and repacker.
+Supplied subp_dictionary.txt is currently TPP only.
+Check https://github.com/TinManTex/mgsv-lookup-strings for updated dictionaries.
 
 ### Usage
 ```
