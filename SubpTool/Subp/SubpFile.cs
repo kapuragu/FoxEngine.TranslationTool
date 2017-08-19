@@ -18,14 +18,14 @@ namespace SubpTool.Subp
         [XmlArray("Entries")]
         public List<SubpEntry> Entries { get; set; }
 
-        public static SubpFile ReadSubpFile(Stream input, Encoding encoding)
+        public static SubpFile ReadSubpFile(Stream input, Encoding encoding, Dictionary<uint, string> subtitleIdDictionary)
         {
             SubpFile subpFile = new SubpFile();
-            subpFile.Read(input, encoding);
+            subpFile.Read(input, encoding, subtitleIdDictionary);
             return subpFile;
         }
 
-        public void Read(Stream input, Encoding encoding)
+        public void Read(Stream input, Encoding encoding, Dictionary<uint, string> subtitleIdDictionary)
         {
             BinaryReader reader = new BinaryReader(input, Encoding.Default, true);
             short magicNumber = reader.ReadInt16();
@@ -41,7 +41,12 @@ namespace SubpTool.Subp
             {
                 input.Position = index.Offset;
                 var entry = SubpEntry.ReadSubpEntry(input, encoding);
-                entry.SubtitleId = index.SubtitleId;
+                entry.SubtitleIdHash = index.SubtitleIdHash;
+                string subtitleId;
+                if (subtitleIdDictionary.TryGetValue(entry.SubtitleIdHash, out subtitleId)) {
+                    entry.SubtitleId = subtitleId;
+                }
+
                 Entries.Add(entry);
             }
         }
@@ -57,6 +62,7 @@ namespace SubpTool.Subp
             List<SubpIndex> indices = new List<SubpIndex>();
             foreach (var entry in Entries)
             {
+                entry.UpdateSubtitleIdHash();
                 indices.Add(entry.GetIndex(outputStream));
                 entry.Write(outputStream, encoding);
             }

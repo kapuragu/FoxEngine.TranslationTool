@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SubpTool.Utility;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -19,7 +20,10 @@ namespace SubpTool.Subp
         }
 
         [XmlAttribute("Id")]
-        public uint SubtitleId { get; set; }
+        public uint SubtitleIdHash { get; set; }
+
+        [XmlAttribute("SubtitleId")]
+        public string SubtitleId { get; set; }
 
         [XmlAttribute("Priority")]
         public byte SubtitlePriority { get; set; }
@@ -79,7 +83,7 @@ namespace SubpTool.Subp
         {
             return new SubpIndex
             {
-                SubtitleId = SubtitleId,
+                SubtitleIdHash = SubtitleIdHash,
                 Offset = (uint) outputStream.Position
             };
         }
@@ -111,6 +115,16 @@ namespace SubpTool.Subp
             }
 
             writer.Write(encodedData);
+        }
+
+        public bool ShouldSerializeSubtitleIdHash() {
+            return string.IsNullOrEmpty(SubtitleId);
+        }
+
+        public void UpdateSubtitleIdHash() {
+            if (!string.IsNullOrEmpty(SubtitleId)) {
+                SubtitleIdHash = Fox.GetStrCode32(SubtitleId);
+            }
         }
     }
 }

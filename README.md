@@ -46,7 +46,7 @@ Supplied lang_dictionary.txt is targeted to TPP, also supplied is lang_dictionar
 
 ### Usage
 ```
-LangTool file_path [-exportHashes]
+LangTool file_path [-OutputHashes]
 ```
 
 ### Options
@@ -54,7 +54,7 @@ LangTool file_path [-exportHashes]
 Specify file path of dictionary to use. Defaults to lang_dictionary.txt
 
 -OutputHashes | -o
-Appends all StrCode32 langId Key hashes of the lng being processed to langIdHashes.txt
+Outputs all StrCode32 langId Key hashes of the lng being processed to <fileName>_langIdHashes.txt
 
 ### Examples
 
@@ -73,10 +73,11 @@ A Fox Engine subtitle pack unpacker and repacker.
 
 ### Usage
 ```
-SubpTool [options] file_path [output_path]
+SubpTool file_path [-<encoding>] [-OutputHashes]
 ```
 
 ### Options
+Encoding:
 The language of the file may be specified to correctly decode certain subtitles. Not specifying a language option will default to the ISO-8859-1 (Latin 1) encoding.
 
 Option | Language   | Encoding
@@ -90,6 +91,9 @@ Option | Language   | Encoding
 -ara   | Arabic     | UTF-8
 -jpn   | Japanese   | UTF-8
 -por   | Portuguese | UTF-8
+
+-OutputHashes
+Outputs all StrCode32 subtitleId Key hashes of the lng being processed to <fileName>_subtitleIdHashes.txt
 
 ### Examples
 
