@@ -151,6 +151,7 @@ namespace SubpTool
             }))
             {
                 SubpFile subpFile = SubpFile.ReadSubpFile(inputStream, encoding, dictionary);
+                // TODO: think if it's better for user to sort by (unhashed) subTitleId
                 // TODO: Change XML Encoding
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 serializer.Serialize(outputWriter, subpFile);
@@ -183,6 +184,8 @@ namespace SubpTool
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 SubpFile subpFile = serializer.Deserialize(xmlReader) as SubpFile;
+                //tex vanilla files are sorted by hash ascending
+                subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
                 subpFile?.Write(outputStream, encoding);
             }
         }
