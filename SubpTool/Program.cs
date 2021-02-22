@@ -10,8 +10,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using SubpTool.Utility;
 
-namespace SubpTool {
-    public static class Program {
+namespace SubpTool
+{
+    public static class Program
+    {
         static HashSet<string> encodingArgs = new HashSet<string> {
             "-rus",
             "-jpn",
@@ -26,8 +28,10 @@ namespace SubpTool {
 
         const string DefaultDictionaryPath = "subp_dictionary.txt";
 
-        public static void Main(string[] args) {
-            if (args.Length == 0 || args.Length > 3) {
+        public static void Main(string[] args)
+        {
+            if (args.Length == 0 || args.Length > 3)
+            {
                 ShowUsageInfo();
                 return;
             }
@@ -37,36 +41,48 @@ namespace SubpTool {
             bool outputHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
 
-            if (args.Length > 1) {
-                for (int i = 0; i < args.Length; i++) {
+            if (args.Length > 1)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
                     string arg = args[i];
-                    if (encodingArgs.Contains(arg)) {
-                        if (encoding != null) {
+                    if (encodingArgs.Contains(arg))
+                    {
+                        if (encoding != null)
+                        {
                             Console.WriteLine("Can only define one encoding");
                             return;
                         }
                         encoding = GetEncodingFromArgument(arg);
-                    } else {
-                        if (arg.ToLower() == "-outputhashes" || arg.ToLower() == "-o") {
+                    }
+                    else
+                    {
+                        if (arg.ToLower() == "-outputhashes" || arg.ToLower() == "-o")
+                        {
                             outputHashes = true;
-                        } else {
+                        }
+                        else
+                        {
                             path = arg;
                         }
                     }
                 }
             }
 
-            if (File.Exists(path) == false) {
+            if (File.Exists(path) == false)
+            {
                 Console.WriteLine("Could not find file " + path);
                 return;
             }
 
-            if (path.EndsWith(".subp")) {
+            if (path.EndsWith(".subp"))
+            {
                 var dictionary = GetDictionary(dictionaryPath);
                 UnpackSubp(path, encoding, dictionary, outputHashes);
                 return;
             }
-            if (path.EndsWith(".xml")) {
+            if (path.EndsWith(".xml"))
+            {
                 PackSubp(path, encoding);
                 return;
             }
@@ -74,27 +90,35 @@ namespace SubpTool {
             ShowUsageInfo();
         }
 
-        private static Dictionary<uint, string> GetDictionary(string path) {
+        private static Dictionary<uint, string> GetDictionary(string path)
+        {
             var dictionary = new Dictionary<uint, string>();
-            try {
+            try
+            {
                 var values = File.ReadAllLines(path);
-                foreach (var value in values) {
+                foreach (var value in values)
+                {
                     var code = Fox.GetStrCode32(value);
                     DebugCheckCollision(dictionary, code, value);
                     dictionary[code] = value;
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine("Unable to read the dictionary " + path + " " + e);
             }
 
             return dictionary;
         }
 
-        private static Encoding GetEncodingFromArgument(string encoding) {
-            if (encoding == null) {
+        private static Encoding GetEncodingFromArgument(string encoding)
+        {
+            if (encoding == null)
+            {
                 encoding = "";
             }
-            switch (encoding) {
+            switch (encoding)
+            {
                 case "-rus":
                     return Encoding.GetEncoding("ISO-8859-5");
                 case "-jpn":
@@ -111,7 +135,8 @@ namespace SubpTool {
             }
         }
 
-        private static void UnpackSubp(string path, Encoding encoding, Dictionary<uint, string> dictionary, bool outputHashes = false) {
+        private static void UnpackSubp(string path, Encoding encoding, Dictionary<uint, string> dictionary, bool outputHashes = false)
+        {
             string fileDirectory = Path.GetDirectoryName(path);
             string fileName = Path.GetFileNameWithoutExtension(path);
             string outputFileName = fileName + ".xml";
@@ -119,17 +144,21 @@ namespace SubpTool {
 
 
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
-            using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings {
+            using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings
+            {
                 NewLineHandling = NewLineHandling.Entitize,
                 Indent = true
-            })) {
+            }))
+            {
                 SubpFile subpFile = SubpFile.ReadSubpFile(inputStream, encoding, dictionary);
                 // TODO: Change XML Encoding
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 serializer.Serialize(outputWriter, subpFile);
-                if (outputHashes) {
+                if (outputHashes)
+                {
                     HashSet<string> uniqueHashes = new HashSet<string>();
-                    foreach (SubpEntry entry in subpFile.Entries) {
+                    foreach (SubpEntry entry in subpFile.Entries)
+                    {
                         ulong hash = entry.SubtitleIdHash;
                         uniqueHashes.Add(hash.ToString());
                     }
@@ -141,7 +170,8 @@ namespace SubpTool {
             }
         }
 
-        private static void PackSubp(string path, Encoding encoding) {
+        private static void PackSubp(string path, Encoding encoding)
+        {
             string fileDirectory = Path.GetDirectoryName(path);
             string fileName = Path.GetFileNameWithoutExtension(path);
             string outputFileName = fileName + ".subp";
@@ -149,20 +179,23 @@ namespace SubpTool {
 
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
             using (XmlReader xmlReader = XmlReader.Create(inputStream, CreateXmlReaderSettings<SubpFile>()))
-            using (FileStream outputStream = new FileStream(outputFilePath, FileMode.Create)) {
+            using (FileStream outputStream = new FileStream(outputFilePath, FileMode.Create))
+            {
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 SubpFile subpFile = serializer.Deserialize(xmlReader) as SubpFile;
                 subpFile?.Write(outputStream, encoding);
             }
         }
 
-        private static XmlReaderSettings CreateXmlReaderSettings<T>() {
+        private static XmlReaderSettings CreateXmlReaderSettings<T>()
+        {
             XmlSchemas schemas = new XmlSchemas();
             XmlSchemaExporter exporter = new XmlSchemaExporter(schemas);
             XmlTypeMapping mapping = new XmlReflectionImporter().ImportTypeMapping(typeof(T));
             exporter.ExportTypeMapping(mapping);
             XmlSchemaSet schemaSet = new XmlSchemaSet();
-            foreach (XmlSchema schema in schemas) {
+            foreach (XmlSchema schema in schemas)
+            {
                 schemaSet.Add(schema);
             }
 
@@ -173,23 +206,30 @@ namespace SubpTool {
             return settings;
         }
 
-        private static void HandleXmlReaderValidation(object sender, ValidationEventArgs args) {
-            if (args.Severity == XmlSeverityType.Warning) {
+        private static void HandleXmlReaderValidation(object sender, ValidationEventArgs args)
+        {
+            if (args.Severity == XmlSeverityType.Warning)
+            {
                 Console.WriteLine($"{args.Severity} at line '{args.Exception?.LineNumber}' position '{args.Exception?.LinePosition}':\n{args.Message}");
-            } else {
+            }
+            else
+            {
                 throw args.Exception;
             }
         }
 
         [Conditional("DEBUG")]
-        private static void DebugCheckCollision(Dictionary<uint, string> dictionary, uint code, string newValue) {
+        private static void DebugCheckCollision(Dictionary<uint, string> dictionary, uint code, string newValue)
+        {
             string originalValue;
-            if (dictionary.TryGetValue(code, out originalValue)) {
+            if (dictionary.TryGetValue(code, out originalValue))
+            {
                 Debug.WriteLine("StrCode32 collision detected ({0}). Overwriting '{1}' with '{2}'", code, originalValue, newValue);
             }
         }
 
-        private static void ShowUsageInfo() {
+        private static void ShowUsageInfo()
+        {
             string[] usageInfo = {
                 "SubpTool by Atvaark",
                 "Description",
@@ -202,7 +242,8 @@ namespace SubpTool {
                 "  -OutputHashes - Outputs all StrCode32 subtitleId hashes to <fileName>_subtitleIdHashes.txt",
             };
 
-            foreach (string line in usageInfo) {
+            foreach (string line in usageInfo)
+            {
                 Console.WriteLine(line);
             }
         }
