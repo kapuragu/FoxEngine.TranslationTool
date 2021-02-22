@@ -37,7 +37,7 @@ namespace SubpTool
             }
 
             string path = args[0];
-            Encoding encoding = GetEncodingFromArgument("");
+            Encoding encoding = null;
             bool outputHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
 
@@ -67,6 +67,8 @@ namespace SubpTool
                         }
                     }
                 }
+            } else {
+                encoding = GetEncodingFromArgument("");
             }
 
             if (File.Exists(path) == false)
