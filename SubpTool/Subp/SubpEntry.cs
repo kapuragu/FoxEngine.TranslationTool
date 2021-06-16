@@ -19,7 +19,7 @@ namespace SubpTool.Subp
             Lines = new List<SubpLine>();
         }
 
-        [XmlAttribute("Id")]
+        [XmlAttribute("Id")]//LEGACY: keeping name as Id for those who have old unpacked subps
         public uint SubtitleIdHash { get; set; }
 
         [XmlAttribute("SubtitleId")]
