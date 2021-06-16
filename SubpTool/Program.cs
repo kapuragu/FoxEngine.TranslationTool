@@ -9,6 +9,7 @@ using SubpTool.Subp;
 using System.Collections.Generic;
 using System.Diagnostics;
 using SubpTool.Utility;
+using System.Reflection;
 
 namespace SubpTool
 {
@@ -27,25 +28,49 @@ namespace SubpTool
         };
 
         const string DefaultDictionaryPath = "subp_dictionary.txt";
+        private const string fileType = "subp";
+
+        class RunSettings
+        {
+            public bool outputHashes = false;
+            public string gameId = "TPP";
+            public string outputPath = @"D:\Github\mgsv-lookup-strings";
+        }//RunSettings
 
         public static void Main(string[] args)
         {
-            if (args.Length == 0 || args.Length > 3)
+            if (args.Length == 0)
             {
                 ShowUsageInfo();
                 return;
             }
 
-            string path = args[0];
+            string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            Directory.SetCurrentDirectory(exeDir);
+
             Encoding encoding = null;
-            bool outputHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
 
-            if (args.Length > 1)
+            RunSettings runSettings = new RunSettings();
+
+            List<string> files = new List<string>();
+            int idx = 0;
+            if (args[idx].ToLower() == "-outputhashes" || args[idx].ToLower() == "-o")
             {
-                for (int i = 0; i < args.Length; i++)
+                runSettings.outputHashes = true;
+                runSettings.outputPath = args[idx += 1];
+                runSettings.gameId = args[idx += 1].ToUpper();
+                Console.WriteLine("Adding to file list");
+                for (int i = idx += 1; i < args.Length; i++)
                 {
-                    string arg = args[i];
+                    AddToFiles(files, args[i], fileType);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Adding to file list");
+                foreach (var arg in args)
+                {
                     if (encodingArgs.Contains(arg))
                     {
                         if (encoding != null)
@@ -57,40 +82,44 @@ namespace SubpTool
                     }
                     else
                     {
-                        if (arg.ToLower() == "-outputhashes" || arg.ToLower() == "-o")
-                        {
-                            outputHashes = true;
-                        }
-                        else
-                        {
-                            path = arg;
-                        }
+                        AddToFiles(files, arg, "*");
                     }
-                }
-            } else {
+
+                }//foreach args
+            }//handle args
+
+            if (encoding == null) {
                 encoding = GetEncodingFromArgument("");
             }
 
-            if (File.Exists(path) == false)
+            if (files.Count() == 0)
             {
-                Console.WriteLine("Could not find file " + path);
+                Console.WriteLine("Could not find any files");
                 return;
             }
 
-            if (path.EndsWith(".subp"))
-            {
-                var dictionary = GetDictionary(dictionaryPath);
-                UnpackSubp(path, encoding, dictionary, outputHashes);
-                return;
-            }
-            if (path.EndsWith(".xml"))
-            {
-                PackSubp(path, encoding);
-                return;
+            foreach (string path in files) { 
+                if (path.EndsWith(".subp"))
+                {                        
+                    var dictionary = GetDictionary(dictionaryPath);
+                    if (!runSettings.outputHashes)
+                    {
+                        Console.WriteLine($"Unpacking {path}");
+                        UnpackSubp(path, encoding, dictionary);
+                    } else
+                    {
+                        OutputHashes(path, encoding, dictionary, runSettings);
+                    }
+                }
+                if (path.EndsWith(".xml"))
+                {
+                    Console.WriteLine($"Packing {path}");
+                    PackSubp(path, encoding);
+                }
             }
 
-            ShowUsageInfo();
-        }
+           // ShowUsageInfo();
+        }//main
 
         private static Dictionary<uint, string> GetDictionary(string path)
         {
@@ -137,7 +166,7 @@ namespace SubpTool
             }
         }
 
-        private static void UnpackSubp(string path, Encoding encoding, Dictionary<uint, string> dictionary, bool outputHashes = false)
+        private static void UnpackSubp(string path, Encoding encoding, Dictionary<uint, string> dictionary)
         {
             string fileDirectory = Path.GetDirectoryName(path);
             string fileName = Path.GetFileNameWithoutExtension(path);
@@ -146,30 +175,17 @@ namespace SubpTool
 
 
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
-            using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings
-            {
+            using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings {
                 NewLineHandling = NewLineHandling.Entitize,
-                Indent = true
+                Indent = true,
+                Encoding = encoding
             }))
             {
                 SubpFile subpFile = SubpFile.ReadSubpFile(inputStream, encoding, dictionary);
-                // TODO: think if it's better for user to sort by (unhashed) subTitleId
+                //tex TODO: think if it's better for user to sort by (unhashed) subTitleId
                 // TODO: Change XML Encoding
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 serializer.Serialize(outputWriter, subpFile);
-                if (outputHashes)
-                {
-                    HashSet<string> uniqueHashes = new HashSet<string>();
-                    foreach (SubpEntry entry in subpFile.Entries)
-                    {
-                        ulong hash = entry.SubtitleIdHash;
-                        uniqueHashes.Add(hash.ToString());
-                    }
-                    List<string> hashes = uniqueHashes.ToList<string>();
-                    hashes.Sort();
-                    string hashesOutputPath = Path.Combine(fileDirectory, string.Format("{0}_subpIdHashes.txt", Path.GetFileName(path)));
-                    File.WriteAllLines(hashesOutputPath, hashes.ToArray<string>());
-                }
             }
         }
 
@@ -180,17 +196,41 @@ namespace SubpTool
             string outputFileName = fileName + ".subp";
             string outputFilePath = Path.Combine(fileDirectory, outputFileName);
 
+            //tex really seems like there should be a way to access the xml declaration from xmlreader iteself, but I guess not
+            Encoding xmlEncoding = FindXmlEncoding(path);
+            if (xmlEncoding != null) {
+                encoding = xmlEncoding;
+            }
+
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
             using (XmlReader xmlReader = XmlReader.Create(inputStream, CreateXmlReaderSettings<SubpFile>()))
             using (FileStream outputStream = new FileStream(outputFilePath, FileMode.Create))
-            {
+            {       
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 SubpFile subpFile = serializer.Deserialize(xmlReader) as SubpFile;
                 //tex vanilla files are sorted by hash ascending
-                subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
+                //subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
+                //DEBUGNOW
                 subpFile?.Write(outputStream, encoding);
             }
         }
+
+        private static void OutputHashes(string path, Encoding encoding, Dictionary<uint, string> dictionary, RunSettings runSettings)
+        {
+            using (FileStream inputStream = new FileStream(path, FileMode.Open))
+            {
+                SubpFile subpFile = SubpFile.ReadSubpFile(inputStream, encoding, dictionary);
+
+                //var rawHashes = new List<string>();
+                var subtitleIdHashSet = new HashSet<string>();
+                foreach (SubpEntry entry in subpFile.Entries)
+                {
+                    ulong hash = entry.SubtitleIdHash;
+                    subtitleIdHashSet.Add(hash.ToString());
+                }
+                WriteHashes(subtitleIdHashSet, path, "SubtitleId", "StrCode32", runSettings.gameId, runSettings.outputPath);
+            }
+        }//OutputHashes
 
         private static XmlReaderSettings CreateXmlReaderSettings<T>()
         {
@@ -223,6 +263,24 @@ namespace SubpTool
             }
         }
 
+        private static Encoding FindXmlEncoding(string path) 
+        {
+            using (XmlTextReader reader = new XmlTextReader(path)) {
+                reader.Read();
+                if (reader.NodeType == XmlNodeType.XmlDeclaration) {
+                    while (reader.MoveToNextAttribute()) {
+                        if (reader.Name == "encoding") {
+                            string encodingName = reader.Value;
+                            if (encodingName != null && encodingName != "") {
+                                return Encoding.GetEncoding(encodingName);
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         [Conditional("DEBUG")]
         private static void DebugCheckCollision(Dictionary<uint, string> dictionary, uint code, string newValue)
         {
@@ -233,6 +291,50 @@ namespace SubpTool
             }
         }
 
+        private static void AddToFiles(List<string> files, string path, string fileType)
+        {
+            if (File.Exists(path))
+            {
+                files.Add(path);
+            }
+            else
+            {
+                if (Directory.Exists(path))
+                {
+                    var dirFiles = Directory.GetFiles(path, $"*.{fileType}", SearchOption.AllDirectories);
+                    foreach (var file in dirFiles)
+                    {
+                        files.Add(file);
+                    }
+                }
+            }
+        }//AddToFiles
+        private static string GetAssetsPath(string inputPath)
+        {
+            int index = inputPath.LastIndexOf("Assets");
+            if (index != -1)
+            {
+                return inputPath.Substring(index);
+            }
+            return Path.GetFileName(inputPath);
+        }//GetAssetsPath
+        //tex outputs to mgsv-lookup-strings repo layout
+        private static void WriteHashes(HashSet<string> hashSet, string inputFilePath, string hashName, string hashTypeName, string gameId, string outputPath)
+        {
+            if (hashSet.Count > 0)
+            {
+                string assetsPath = GetAssetsPath(inputFilePath);
+                //OFF string destPath = {inputFilePath}_{hashName}_{hashTypeName}.txt" //Alt: just output to input file path_whatev
+                string destPath = Path.Combine(outputPath, $"{fileType}\\Hashes\\{gameId}\\{hashName}\\{assetsPath}_{hashName}_{hashTypeName}.txt");
+
+                List<string> hashes = hashSet.ToList<string>();
+                hashes.Sort();
+
+                string destDir = Path.GetDirectoryName(destPath);
+                DirectoryInfo di = Directory.CreateDirectory(destDir);
+                File.WriteAllLines(destPath, hashes.ToArray());
+            }
+        }//WriteHashes
         private static void ShowUsageInfo()
         {
             string[] usageInfo = {
