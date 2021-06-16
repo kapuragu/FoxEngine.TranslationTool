@@ -8,7 +8,22 @@ namespace SubpTool.Subp
     [XmlType("SubpFile")]
     public class SubpFile
     {
-        private const short MagicNumber = 0x0113;
+        private const short MagicNumber = 0x0113; //tex: DEBUGNOW where did atvaark derive this from? GZ magicnumber is 0x014C, 
+        //and TPP is two bytes, 1st being?? but varies among files, and 2nd being langId
+        //unk0 - 0x 12, 13, 1b ..??
+        //TPP langids
+        //byte
+        //00 - jpn
+        //01 - eng
+        //02 - fre
+        //03 - ita
+        //04 - ger
+        //05 - spa
+        //06 - por
+        //07 - rus
+
+        // what other langs did tpp have that I don't have files for? ara (gz had)? 
+
 
         public SubpFile()
         {
