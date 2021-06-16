@@ -27,7 +27,7 @@ namespace SubpTool
             "-eng",
         };
 
-        const string DefaultDictionaryPath = "subp_dictionary.txt";
+        const string DefaultDictionaryPath = "subp_subtitleid_dictionary.txt";
         private const string fileType = "subp";
 
         class RunSettings
