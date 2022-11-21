@@ -7,28 +7,43 @@ using System.Xml.Serialization;
 using LangTool.Lang;
 using LangTool.Utility;
 using System.Linq;
+using System.Reflection;
 
 namespace LangTool
 {
     internal class Program
     {
         const string DefaultDictionaryPath = "lang_dictionary.txt";
+        public static string GetPathNearApp(string name)
+        {
+            if (!File.Exists(name))
+            {
+                return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/" + Path.GetFileName(name);
+            }
+            return name;
+        }
 
         private static void Main(string[] args)
         {
-            if (args.Length == 0 || args.Length > 3)
+            if (args.Length == 0)
             {
                 ShowUsageInfo();
                 return;
             }
 
-            string path = args[0];
             bool outputHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
+            bool hasFile = false;
 
-            if (args.Length > 1) {
-                for (int i = 1; i < args.Length; i++) {
+            if (args.Length > 0) {
+                for (int i = 0; i < args.Length; i++) {
                     string arg = args[i];
+                    if (File.Exists(arg))
+                    {
+                        Read(arg, outputHashes, GetPathNearApp(dictionaryPath));
+                        hasFile = true;
+                        continue;
+                    }
                     string argL = args[i].ToLower();
                     if (argL == "-outputhashes" || argL == "-o") {
                         outputHashes = true;
@@ -42,12 +57,15 @@ namespace LangTool
                 }
             }
 
-            if (File.Exists(path) == false)
+            if (hasFile == false)
             {
                 ShowUsageInfo();
                 return;
             }
 
+        }
+        private static void Read(string path, bool outputHashes, string dictionaryPath)
+        {
             string extension = Path.GetExtension(path);
             if (String.Equals(extension, ".xml", StringComparison.OrdinalIgnoreCase))
             {
@@ -55,7 +73,7 @@ namespace LangTool
                 using (StreamReader xmlReader = new StreamReader(inputStream, Encoding.UTF8))
                 using (FileStream outputStream = new FileStream(path.Substring(0, path.Length - 4), FileMode.Create))
                 {
-                    XmlSerializer serializer = new XmlSerializer(typeof (LangFile));
+                    XmlSerializer serializer = new XmlSerializer(typeof(LangFile));
                     LangFile file = serializer.Deserialize(xmlReader) as LangFile;
                     if (file == null)
                     {
@@ -74,11 +92,13 @@ namespace LangTool
                 using (StreamWriter xmlWriter = new StreamWriter(outputStream, Encoding.UTF8))
                 {
                     LangFile file = LangFile.ReadLangFile(inputStream, dictionary);
-                    XmlSerializer serializer = new XmlSerializer(typeof (LangFile));
+                    XmlSerializer serializer = new XmlSerializer(typeof(LangFile));
                     serializer.Serialize(xmlWriter, file);
-                    if (outputHashes) {
+                    if (outputHashes)
+                    {
                         HashSet<string> uniqueHashes = new HashSet<string>();
-                        foreach (LangEntry entry in file.Entries) {
+                        foreach (LangEntry entry in file.Entries)
+                        {
                             ulong langIdHash = entry.Key;
                             uniqueHashes.Add(langIdHash.ToString("x"));
                         }

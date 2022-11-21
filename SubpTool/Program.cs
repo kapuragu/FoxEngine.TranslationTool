@@ -49,7 +49,7 @@ namespace SubpTool
             Directory.SetCurrentDirectory(exeDir);
 
             Encoding encoding = null;
-            string dictionaryPath = DefaultDictionaryPath;
+            string dictionaryPath = exeDir + "/" + DefaultDictionaryPath;
 
             RunSettings runSettings = new RunSettings();
 
@@ -166,6 +166,36 @@ namespace SubpTool
             }
         }
 
+        public enum FileVersion
+        {
+            GZ = 0x01,
+            TPP = 0x03,
+        };
+
+        public enum VoiceVersion
+        {
+            jpn = 0x00,
+            eng = 0x01,
+            ps3 = 0x0e,
+        };
+
+        public enum EncodingId
+        {
+            jpn = 0x00,
+            eng = 0x01,
+            fre = 0x02,
+            ita = 0x03,
+            ger = 0x04,
+            spa = 0x05,
+            por = 0x06,
+            rus = 0x07,
+            ara = 0x08,
+            cht = 0x09,
+            kor = 0x0a,
+
+            gzpc = 0x4c,
+            gzps3 = 0x42,
+        };
         private static void UnpackSubp(string path, Encoding encoding, Dictionary<uint, string> dictionary)
         {
             string fileDirectory = Path.GetDirectoryName(path);
@@ -173,15 +203,60 @@ namespace SubpTool
             string outputFileName = fileName + ".xml";
             string outputFilePath = Path.Combine(fileDirectory, outputFileName);
 
+            FileVersion versionId;
+            VoiceVersion voiceVersion;
+            EncodingId encodingId;
+
+            using (FileStream inputStream = new FileStream(path, FileMode.Open))
+            {
+                BinaryReader reader = new BinaryReader(inputStream, Encoding.Default, true);
+                //short magicNumber = reader.ReadInt16();
+                //why not just take these bytes and use encoding with them?
+                byte versionByte = reader.ReadByte();
+                versionId = (FileVersion)(byte)(versionByte & 0x0F);
+                voiceVersion = (VoiceVersion)(byte)((versionByte & 0xF0) >> 4);
+                encodingId = (EncodingId)reader.ReadByte();
+
+                Encoding newEncoding;
+                switch (encodingId)
+                {
+                    case EncodingId.rus:
+                        newEncoding = Encoding.GetEncoding("ISO-8859-5");
+                        break;
+                    case EncodingId.jpn:
+                    case EncodingId.ara:
+                    case EncodingId.por:
+                        newEncoding = Encoding.UTF8;
+                        break;
+                    case EncodingId.fre:
+                    case EncodingId.ger:
+                    case EncodingId.spa:
+                    case EncodingId.ita:
+                    case EncodingId.eng:
+                    default:
+                        newEncoding = encoding;
+                        break;
+                }
+                if (versionId == FileVersion.TPP)
+                {
+                    encoding = newEncoding;
+                };
+            }
 
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
             using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings {
                 NewLineHandling = NewLineHandling.Entitize,
                 Indent = true,
-                Encoding = encoding
+                Encoding = encoding,
             }))
             {
-                SubpFile subpFile = SubpFile.ReadSubpFile(inputStream, encoding, dictionary);
+
+                SubpFile subpFile = new SubpFile();
+                subpFile.FileVersion = (uint)versionId;
+                subpFile.VoiceType = (uint)voiceVersion;
+                subpFile.LanguageType = (uint)encodingId;
+                subpFile.Read(inputStream, encoding, dictionary);
+
                 //tex TODO: think if it's better for user to sort by (unhashed) subTitleId
                 // TODO: Change XML Encoding
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
@@ -209,7 +284,7 @@ namespace SubpTool
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 SubpFile subpFile = serializer.Deserialize(xmlReader) as SubpFile;
                 //tex vanilla files are sorted by hash ascending
-                //subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
+                subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
                 //DEBUGNOW
                 subpFile?.Write(outputStream, encoding);
             }
