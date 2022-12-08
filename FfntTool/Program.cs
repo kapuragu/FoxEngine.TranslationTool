@@ -14,32 +14,24 @@ namespace FfntTool
     {
         public static void Main(string[] args)
         {
-            if (args.Length < 1 || args.Length > 2)
+            for (int i = 0; i < args.Length; i++)
             {
-                return;
-            }
-            string path = args[0];
+                string path = args[i];
+                if (File.Exists(path))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(path);
+                    string outputPath = Path.Combine(Path.GetDirectoryName(path), fileName);
 
-            if (File.Exists(path) == false)
-            {
-                return;
-            }
-
-            string fileName = Path.GetFileNameWithoutExtension(path);
-            string outputPath = args.Length == 2
-                ? args[1]
-                : Path.Combine(Path.GetDirectoryName(path), fileName);
-
-            Directory.CreateDirectory(outputPath);
-
-            if (path.EndsWith(".ffnt", StringComparison.InvariantCultureIgnoreCase))
-            {
-                UnpackFfnt(path, fileName, outputPath);
-            }
-            else if (path.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
-            {
-                PackFfnt(path, fileName, outputPath);
-            }
+                    if (path.EndsWith(".ffnt", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        UnpackFfnt(path, fileName, outputPath);
+                    }
+                    else if (path.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        PackFfnt(path, fileName, outputPath);
+                    }
+                }
+            };
         }
 
         private static void PackFfnt(string path, string fileName, string outputPath)

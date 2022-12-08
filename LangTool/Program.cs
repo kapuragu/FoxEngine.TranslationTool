@@ -34,26 +34,37 @@ namespace LangTool
             bool outputHashes = false;
             string dictionaryPath = DefaultDictionaryPath;
             bool hasFile = false;
+            bool gettingDictionary = false;
 
             if (args.Length > 0) {
                 for (int i = 0; i < args.Length; i++) {
-                    string arg = args[i];
-                    if (File.Exists(arg))
+                    string path = args[i];
+                    if (File.Exists(path))
                     {
-                        Read(arg, outputHashes, GetPathNearApp(dictionaryPath));
+                        if (gettingDictionary)
+                        {
+                            gettingDictionary = false;
+                            dictionaryPath = path;
+                            continue;
+                        };
+
+                        Read(path, outputHashes, GetPathNearApp(dictionaryPath));
                         hasFile = true;
                         continue;
                     }
-                    string argL = args[i].ToLower();
-                    if (argL == "-outputhashes" || argL == "-o") {
-                        outputHashes = true;
-                    } else {
-                        if (argL == "-dictionary" || argL == "-d") {
-                            if (i + 1 < args.Length) {
-                                dictionaryPath = args[i + 1];
-                            }
+                    else
+                    {
+                        string option = path.ToLower();
+                        if (option == "-outputhashes" || option == "-o")
+                        {
+                            outputHashes = true;
                         }
-                    }
+                        else if(option == "-dictionary" || option == "-d")
+                        {
+                            if (!gettingDictionary)
+                                gettingDictionary = true;
+                        };
+                    };
                 }
             }
 

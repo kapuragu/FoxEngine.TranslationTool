@@ -28,6 +28,14 @@ namespace SubpTool
         };
 
         const string DefaultDictionaryPath = "subp_subtitleid_dictionary.txt";
+        public static string GetPathNearApp(string name)
+        {
+            if (!File.Exists(name))
+            {
+                return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/" + Path.GetFileName(name);
+            }
+            return name;
+        }
         private const string fileType = "subp";
 
         class RunSettings
@@ -45,11 +53,8 @@ namespace SubpTool
                 return;
             }
 
-            string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            Directory.SetCurrentDirectory(exeDir);
-
             Encoding encoding = null;
-            string dictionaryPath = exeDir + "/" + DefaultDictionaryPath;
+            string dictionaryPath = DefaultDictionaryPath;
 
             RunSettings runSettings = new RunSettings();
 
@@ -101,7 +106,7 @@ namespace SubpTool
             foreach (string path in files) { 
                 if (path.EndsWith(".subp"))
                 {                        
-                    var dictionary = GetDictionary(dictionaryPath);
+                    var dictionary = GetDictionary(GetPathNearApp(dictionaryPath));
                     if (!runSettings.outputHashes)
                     {
                         Console.WriteLine($"Unpacking {path}");
