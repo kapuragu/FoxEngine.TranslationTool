@@ -46,8 +46,8 @@ namespace SubpTool.Subp
             Entries = new List<SubpEntry>();
         }
 
-        [XmlAttribute("FileVersion")]
-        public uint FileVersion { get; set; }
+        [XmlAttribute("SortType")]
+        public uint SortType { get; set; }
 
         [XmlAttribute("VoiceType")]
         public uint VoiceType { get; set; }
@@ -103,7 +103,7 @@ namespace SubpTool.Subp
             BinaryWriter writer = new BinaryWriter(outputStream, encoding, true);
 
             //writer.Write(MagicNumber);
-            writer.Write((byte)(FileVersion | (byte)(VoiceType <<4)));
+            writer.Write((byte)(SortType&0b11 | (byte)(VoiceType <<4)));
             writer.Write((byte)LanguageType);
 
             writer.Write((short) Entries.Count);
@@ -114,7 +114,6 @@ namespace SubpTool.Subp
 
             foreach (var entry in Entries)
             {
-                entry.UpdateSubtitleIdHash();
                 indices.Add(entry.GetIndex(outputStream));
                 entry.Write(outputStream, encoding);
             }

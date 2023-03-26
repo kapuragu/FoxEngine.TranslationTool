@@ -171,10 +171,11 @@ namespace SubpTool
             }
         }
 
-        public enum FileVersion
+        public enum SortType
         {
             GZ = 0x01,
-            TPP = 0x03,
+            RANDOM = 0x02,
+            ASCENDING = 0x03,
         };
 
         public enum VoiceVersion
@@ -208,7 +209,7 @@ namespace SubpTool
             string outputFileName = fileName + ".xml";
             string outputFilePath = Path.Combine(fileDirectory, outputFileName);
 
-            FileVersion versionId;
+            SortType sortType;
             VoiceVersion voiceVersion;
             EncodingId encodingId;
 
@@ -218,7 +219,7 @@ namespace SubpTool
                 //short magicNumber = reader.ReadInt16();
                 //why not just take these bytes and use encoding with them?
                 byte versionByte = reader.ReadByte();
-                versionId = (FileVersion)(byte)(versionByte & 0x0F);
+                sortType = (SortType)(byte)(versionByte & 0b11);
                 voiceVersion = (VoiceVersion)(byte)((versionByte & 0xF0) >> 4);
                 encodingId = (EncodingId)reader.ReadByte();
 
@@ -242,7 +243,7 @@ namespace SubpTool
                         newEncoding = encoding;
                         break;
                 }
-                if (versionId == FileVersion.TPP)
+                if (sortType == SortType.ASCENDING|| sortType == SortType.RANDOM)
                 {
                     encoding = newEncoding;
                 };
@@ -257,7 +258,7 @@ namespace SubpTool
             {
 
                 SubpFile subpFile = new SubpFile();
-                subpFile.FileVersion = (uint)versionId;
+                subpFile.SortType = (uint)sortType;
                 subpFile.VoiceType = (uint)voiceVersion;
                 subpFile.LanguageType = (uint)encodingId;
                 subpFile.Read(inputStream, encoding, dictionary);
@@ -288,10 +289,34 @@ namespace SubpTool
             {       
                 XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 SubpFile subpFile = serializer.Deserialize(xmlReader) as SubpFile;
-                //tex vanilla files are sorted by hash ascending
-                subpFile.Entries = subpFile.Entries.OrderBy(o => o.SubtitleIdHash).ToList();
                 //DEBUGNOW
+                foreach (var entry in subpFile.Entries)
+                {
+                    entry.UpdateSubtitleIdHash();
+                }
+                if (subpFile.SortType == (uint)SortType.ASCENDING)
+                {
+                    //tex vanilla files are sorted by hash ascending
+                    //Sorting thanks to Joey:
+                    int CompareHashes(SubpEntry x, SubpEntry y)
+                    {
+                        var xHash = x.SubtitleIdHash;
+                        var yHash = y.SubtitleIdHash;
+                        if (xHash < yHash)
+                            return -1;
+                        else if (xHash == yHash)
+                            return 0;
+                        else
+                            return +1;
+                    }
+                    subpFile.Entries.Sort(CompareHashes);
+                }
                 subpFile?.Write(outputStream, encoding);
+                for (int i = 0; i < subpFile.Entries.Count; i++)
+                {
+                    Console.WriteLine($"#{i}={subpFile.Entries[i].SubtitleIdHash}|{subpFile.Entries[i].SubtitleId}");
+                }
+                Console.ReadLine();
             }
         }
 
