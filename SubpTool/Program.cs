@@ -312,11 +312,6 @@ namespace SubpTool
                     subpFile.Entries.Sort(CompareHashes);
                 }
                 subpFile?.Write(outputStream, encoding);
-                for (int i = 0; i < subpFile.Entries.Count; i++)
-                {
-                    Console.WriteLine($"#{i}={subpFile.Entries[i].SubtitleIdHash}|{subpFile.Entries[i].SubtitleId}");
-                }
-                Console.ReadLine();
             }
         }
 
