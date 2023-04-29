@@ -240,15 +240,18 @@ namespace SubpTool
                     case EncodingId.ita:
                     case EncodingId.eng:
                     default:
-                        newEncoding = encoding;
+                        newEncoding = Encoding.GetEncoding("ISO-8859-1");
                         break;
                 }
-                if (sortType == SortType.ASCENDING|| sortType == SortType.RANDOM)
+                if (sortType == SortType.ASCENDING || sortType == SortType.RANDOM)
                 {
                     encoding = newEncoding;
                 };
             }
 
+            //tex TODO: think if it's better for user to sort by (unhashed) subTitleId
+            // TODO: Change XML Encoding
+            XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
             using (FileStream inputStream = new FileStream(path, FileMode.Open))
             using (XmlWriter outputWriter = XmlWriter.Create(outputFilePath, new XmlWriterSettings {
                 NewLineHandling = NewLineHandling.Entitize,
@@ -262,10 +265,6 @@ namespace SubpTool
                 subpFile.VoiceType = (uint)voiceVersion;
                 subpFile.LanguageType = (uint)encodingId;
                 subpFile.Read(inputStream, encoding, dictionary);
-
-                //tex TODO: think if it's better for user to sort by (unhashed) subTitleId
-                // TODO: Change XML Encoding
-                XmlSerializer serializer = new XmlSerializer(typeof(SubpFile));
                 serializer.Serialize(outputWriter, subpFile);
             }
         }
